@@ -1,1 +1,913 @@
+-- Chris Jarocki Personal Database Project: Car Dealership
 
+---------------------------------------------------------------------------
+--- TASK 1
+---------------------------------------------------------------------------
+
+DROP TABLE Customer CASCADE CONSTRAINTS PURGE;
+DROP TABLE Preference CASCADE CONSTRAINTS PURGE;
+
+-- Creating customer table
+
+CREATE TABLE Customer
+    (Customer_ID          NUMBER(5),
+    Customer_First_Name   VARCHAR2(15)    NOT NULL,
+    Customer_Last_Name    VARCHAR2(15)    NOT NULL,
+    Customer_Street      VARCHAR2(30)     NOT NULL,
+    Customer_City        VARCHAR2(30)     NOT NULL,
+    Customer_State        VARCHAR2(2)     DEFAULT 'CA' NOT NULL,
+    Customer_Zip          CHAR(5)         NOT NULL,
+    Customer_Phone_Number CHAR(10)        NOT NULL CONSTRAINT cust_phone_uk UNIQUE,
+    Customer_Email        VARCHAR2(30)    NOT NULL CONSTRAINT cust_email_uk UNIQUE,
+    CONSTRAINT cust_id_pk PRIMARY KEY (Customer_ID));
+
+-- Creating customer preference table
+
+CREATE TABLE Preference
+    (Preference_ID          NUMBER(5),
+    Preference_Class        CHAR(1)         CONSTRAINT pref_class_ck CHECK(Preference_Class IN ('A','B','C')),        
+    Preference_Make         VARCHAR2(20),
+    Preference_Model        VARCHAR2(20),
+    Preference_Max_Price    NUMBER(8,2)     NOT NULL CONSTRAINT pref_maxp_ck CHECK(Preference_Max_Price > 0),
+    Preference_Start_Date   DATE            DEFAULT SYSDATE NOT NULL,
+    Preference_End_Date     DATE,
+    Customer_ID             NUMBER(5)       NOT NULL,
+    CONSTRAINT pref_date_ck CHECK (Preference_End_Date >= Preference_Start_Date),
+    CONSTRAINT pref_pid_pk PRIMARY KEY (Preference_ID),
+    CONSTRAINT cust_cid_fk FOREIGN KEY (Customer_ID) REFERENCES Customer (Customer_ID));
+
+-- Inserting customer data into customer table
+
+INSERT INTO Customer VALUES (1, 'John', 'Smith', '1234 Mustang Street', 'San Luis Obispo', DEFAULT,'93405','6619042802', 'johnsmith@gmail.com');
+INSERT INTO Customer VALUES (2, 'Chris', 'Jarocki', '1020 Village Road', 'San Jose', DEFAULT, '93406','6619042803', 'christopherjarocki@gmail.com');
+INSERT INTO Customer VALUES (3, 'Bob', 'Jones', '757 Apple Street', 'Los Angeles', DEFAULT, '93407', '6619042804', 'bobjones@gmail.com');
+INSERT INTO Customer VALUES (4, 'Tang', 'Favish', '2262 Saugus Place', 'Arroyo Grande', DEFAULT, '93408', '6619042805', 'tangfavish@gmail.com');
+INSERT INTO Customer VALUES (5, 'Bill', 'Miranda', '1899 Monster Drive', 'San Francisco', DEFAULT, '93409', '6619042806', 'billmiranda@gmail.com');
+INSERT INTO Customer VALUES (6, 'Emily', 'Anderson', '6969 Pizza Place', 'San Francisco', 'CA', '93410', '6619042807', 'emilyanderson@gmail.com');
+INSERT INTO Customer VALUES (7, 'James', 'Klipfel', '7777 Future Street', 'Arroyo Grande', 'CA', '93411', '6619042808', 'jamesklipfel@gmail.com');
+INSERT INTO Customer VALUES (8, 'Bill', 'Gates', '9876 Doge Drive', 'Cambria', 'CA', '93412', '6619042809', 'billgates@gmail.com');
+INSERT INTO Customer VALUES (9, 'Elon', 'Musk', '2022 Color Way', 'Paso Robles', 'CA', '93413', '6619042810', 'elonmusk@gmail.com');
+INSERT INTO Customer VALUES (10, 'Joe', 'Biden', '8888 Billard Road', 'Santa Maria', 'CA', '93414', '6619042811', 'joebiden@gmail.com');
+
+-- Inserting customer preference data into customer preference table
+
+INSERT INTO Preference VALUES (1, 'B', 'Winnebago', 'RV', 70000, DEFAULT, '12/25/2023', 1);
+INSERT INTO Preference VALUES (2, 'B', 'Fleetwood', 'RV', 100000, DEFAULT, '11/25/2023', 1);
+INSERT INTO Preference VALUES (3, 'B', 'Roadtek', 'RV', 65000, DEFAULT, '10/31/2023', 1);
+INSERT INTO Preference VALUES (4, 'A', 'Fleetwood', 'RV', 10000, '07/18/2023', '10/25/2023', 2);
+INSERT INTO Preference VALUES (5, 'A', 'Fleetwood', 'RV', 14999, '06/11/2023', '10/21/2023', 2);
+INSERT INTO Preference VALUES (6, 'A', 'Roadtek', 'RV', 65000, '05/07/2023', '09/22/2023', 3);
+INSERT INTO Preference VALUES (7, 'B', 'Winnebago', 'RV', 121212, '04/04/2023', '08/20/2023', 4);
+INSERT INTO Preference VALUES (8, 'C', 'Fleetwood', 'RV', 99999, '01/10/2023', '07/19/2023', 5);
+
+-- Creating a view that displays a list of customers and their information
+
+CREATE OR REPLACE VIEW CUST_LIST
+AS SELECT Customer_First_Name "First Name", Customer_Last_Name "Last Name", Customer_Street "Street Address", Customer_City "City",
+            Customer_State "State", Customer_Zip "Zip Code",Customer_Phone_Number "Phone Number", Customer_Email "Email"
+FROM Customer
+ORDER BY Customer_Last_Name;
+
+-- Creating a view that lists customers and their preferences
+
+CREATE OR REPLACE VIEW CUST_PREF_LIST
+AS SELECT Customer_First_Name "First Name", Customer_Last_Name "Last Name", Preference_Make "Make Preference",
+        Preference_Model "Model Preference",Preference_Max_Price "Max Price Preference",
+        Preference_Start_Date "Preference Start Date", Preference_End_Date "Preference End Date"
+FROM Customer c JOIN Preference p
+ON (c.Customer_ID = p.Customer_ID);
+
+-- Creating a view for customers and their preferences that include customers without any preferences
+
+CREATE OR REPLACE VIEW ALL_CUST_PREF_LIST
+AS SELECT Customer_First_Name "First Name", Customer_Last_Name "Last Name", Customer_Phone_Number "Phone Number",
+          NVL(Preference_Make, 'No Preference') "Preference Make", Preference_Model "Model Preference",
+          Preference_Class "Class Preference", Preference_Start_Date "Preference Start Date",
+          Preference_End_Date "Preference End Date"
+FROM Customer c LEFT OUTER JOIN Preference p
+ON (c.Customer_ID = p.Customer_ID);
+
+---------------------------------------------------------------------------
+--- TASK 2
+---------------------------------------------------------------------------
+
+DROP TABLE Employee CASCADE CONSTRAINTS PURGE;
+
+-- Creates employee table
+
+CREATE TABLE Employee
+(Employee_ID                NUMBER(4),
+Employee_First_Name         VARCHAR2(15)    NOT NULL,
+Employee_Last_Name          VARCHAR2(15)    NOT NULL,
+Employee_Street             VARCHAR2(30)    NOT NULL,
+Employee_City               VARCHAR2(30)    NOT NULL,
+Employee_State              VARCHAR2(2)     DEFAULT 'CA' NOT NULL,
+Employee_Zip                CHAR(5)         NOT NULL,
+Employee_Personal_Phone     CHAR(10)        NOT NULL CONSTRAINT emp_phone_uk UNIQUE,
+Employee_Email              VARCHAR2(30)    NOT NULL CONSTRAINT emp_email_uk UNIQUE,
+Employee_Date_Hired         DATE            NOT NULL,
+Employee_Title              VARCHAR2(30)    NOT NULL,
+Employee_Salary             NUMBER(10)      NOT NULL CONSTRAINT emp_sal_ck CHECK(Employee_Salary > 0),
+Employee_Commission_Percent NUMBER(2),
+Manager_ID                  NUMBER(4),
+CONSTRAINT emp_title_compct_ck CHECK(Employee_Title IN('Sales Manager', 'Sales Associate')
+                               AND (Employee_Commission_Percent BETWEEN 20 AND 30)
+                               OR Employee_Title NOT IN('Sales Manager', 'Sales Associate')
+                               AND Employee_Commission_Percent IS NULL),
+CONSTRAINT emp_empid_pk PRIMARY KEY (Employee_ID),
+CONSTRAINT emp_manid_fk FOREIGN KEY (Manager_ID) REFERENCES Employee(Employee_ID));
+
+-- Inserts employee data into the employee table
+
+INSERT INTO Employee VALUES (1000, 'Larry',  'Daly', '1234 Leaf Lane', 'Valencia', 'CA', '93415',
+                             '6619042812', 'larrydaly@gmail.com', '01/01/2020', 'Manager', 1000000, NULL, NULL);
+INSERT INTO Employee VALUES (1001, 'George', 'Cruise', '2020 Glass Way', 'Santa Clarita', 'CA', '93416',
+                             '6619042813', 'georgecruise@gmail.com', '01/02/2020', 'CPA', 20199, NULL, 1000);
+INSERT INTO Employee VALUES (1002, 'Alex', 'Roosdale', '9999 Apple Way', 'San Luis Obispo', DEFAULT, '93417',
+                             '6619042814', 'alexroosdale@gmail.com', '01/02/2020', 'Parts and Service Manager', 6969, NULL, 1000);
+INSERT INTO Employee VALUES (1003, 'Mary', 'McMaster', '80 Paper Lane', 'San Luis Obispo', 'CA', '93418',
+                             '6619042815', 'marymcmaster@gmail.com', '01/02/2020', 'Sales Manager', 12345, '25', 1000);
+INSERT INTO Employee VALUES (1004, 'Alex', 'McManus', '70 Thisisboring Drive', 'Valencia', 'CA', '93419',
+                             '6619042816', 'alexmcmanus@gmail.com', '01/02/2020', 'Maintenance', 101010, NULL, 1001);
+INSERT INTO Employee VALUES (1005, 'Alan', 'Alfred', '1234 Watch Way', 'Valencia', DEFAULT, '93420',
+                             '6619042817', 'alanalfred@gmail.com', '01/02/2020', 'Mechanic', 10200, NULL, 1002);
+INSERT INTO Employee VALUES (1006, 'Allen', 'Foster', '777 Samsung Drive', 'Valencia', 'CA', '93421',
+                             '6619042818', 'allenfoster@gmail.com', '01/02/2020', 'Sales Associate', 80000, '21', 1003);
+INSERT INTO Employee VALUES (1007, 'Kathy', 'Smith', '6969 Case Lane', 'Santa Clarita','CA', '93422',
+                             '6619042819', 'kathysmith@gmail.com', '01/02/2020', 'AR/AP Clerk', 25000, NULL, 1001);
+INSERT INTO Employee VALUES (1008, 'Juan',  'Garcia', '4321 Dusk Drive', 'Valencia', DEFAULT, '93423',
+                             '6619042820', 'juangarcia@gmail.com', '01/02/2020', 'Mechanic', 30000, NULL, 1002);
+INSERT INTO Employee VALUES (1009, 'Brenda', 'St. James', '6868 Airpods Place', 'Valencia','CA', '93424',
+                             '6619042821', 'brendastjames@gmail.com', '01/02/2020', 'Sales Associate', 400000, '23', 1003);
+INSERT INTO Employee VALUES (1010, 'Sharon', 'Jones', '7777 Round Table Way', 'Valencia', DEFAULT, '69420',
+                             '6619042822', 'sharonjones@gmail.com', '01/02/2020', 'Intern', 50000, NULL, 1008);
+
+-- Creates an employee contact list view that displays employee information
+
+CREATE OR REPLACE VIEW EMP_CONTACT_LIST
+AS SELECT Employee_First_Name "First Name", Employee_Last_Name "Last Name",
+          Employee_Personal_Phone "Personal Phone", Employee_Email "Email"
+FROM Employee
+ORDER BY Employee_Last_Name;
+
+-- Creates an employee reporting list that displays employees and their supervisors/managers
+
+CREATE OR REPLACE VIEW EMP_REPORTING_LIST
+AS SELECT m.Employee_First_Name ||' '|| m.Employee_Last_Name "Manager", m.Employee_Title "Manager Title",
+          e.Employee_First_Name ||' '|| e.Employee_Last_Name "Reportee", e.Employee_Title "Reportee Title"
+FROM Employee e JOIN Employee m
+ON (m.Employee_ID = e.Manager_ID);
+
+---------------------------------------------------------------------------
+--- TASK 3
+---------------------------------------------------------------------------
+
+DROP TABLE Service CASCADE CONSTRAINTS PURGE;
+DROP TABLE Part CASCADE CONSTRAINTS PURGE;
+
+-- Creates the service table
+
+CREATE TABLE Service
+(Service_Code       VARCHAR2(20),
+Service_Description VARCHAR2(200)           NOT NULL,
+Service_Cost        NUMBER(8,2)             NOT NULL,
+Service_Price       NUMBER(8,2)             NOT NULL,
+Service_Months      NUMBER(3),
+Service_Milage      NUMBER(8),
+CONSTRAINT serv_servcst_ck CHECK(Service_Cost > 0),
+CONSTRAINT serv_servprc_ck CHECK(Service_Price > 0),
+CONSTRAINT serv_servcstprc_ck CHECK(Service_Cost <= Service_Price),
+CONSTRAINT serv_servcd_pk PRIMARY KEY (Service_Code));
+
+-- Creates the part table
+
+CREATE TABLE Part
+(Part_Code          VARCHAR2(20),
+Part_Description    VARCHAR2(200)   NOT NULL,
+Part_Cost           NUMBER(8,2)     NOT NULL,
+Part_Price          NUMBER(8,2)     NOT NULL,
+CONSTRAINT prt_prtcst_ck CHECK(Part_Cost > 0),
+CONSTRAINT prt_prtprc_ck CHECK(Part_Price > 0),
+CONSTRAINT prt_prtcstprc_ck CHECK(Part_Cost <= Part_Price),
+CONSTRAINT prt_prtcd_pk PRIMARY KEY (Part_Code));
+
+-- Inserts service data into the service table
+
+INSERT INTO Service VALUES('OILCHG', 'Oil Change', 30.95, 99.95, 6, 6000);
+INSERT INTO Service VALUES('TIREROTATE', 'Tire Rotation', 9.95, 36.95, 12, 12000);
+INSERT INTO Service VALUES('FLUIDS', 'Fluid Replacement', 29.96, 59.59, 30, 30000);
+INSERT INTO Service VALUES('TUNEUPBASIC', 'Basic Engine Tune Up', 109.95, 169.95, 18, 18000);
+INSERT INTO Service VALUES('MULTIPOINTINSP', 'Multi-Point Inspection', 79.95, 129.95, 6, 6000);
+INSERT INTO Service VALUES('TUNEUPDELUXE', 'Deluxe Engine Tune Up', 149.95, 199.95, 18, 25000);
+INSERT INTO Service VALUES('ANTIFREEZE', 'Refill Antifreeze', 19.95, 39.95, 12, 20000);
+INSERT INTO Service VALUES('BATTERYREP', 'Battery replacement', 79.95, 119.95, 18, 30000);
+
+-- Inserts part data into the part table
+
+INSERT INTO Part VALUES('OIL10W30', 'Oil 10W30', 2.79, 5.95);
+INSERT INTO Part VALUES('OILFILTER', 'Oil Filter', 6.95, 21.95);
+INSERT INTO Part VALUES('WINSHIELDFLUID', ' Windshield Fluid', 2.96, 4.95);
+INSERT INTO Part VALUES('SPARKPLUG4', 'Spark Plug Set (8)', 29.95, 49.95);
+INSERT INTO Part VALUES('AIRFILTER', 'Air Filter', 13.95, 28.95);
+INSERT INTO Part VALUES('WIPERS', 'Wind Sheild Wipers', 19.95, 28.95);
+INSERT INTO Part VALUES('BOLTS', 'Tire Bolts', 9.95, 18.95);
+INSERT INTO Part VALUES('BATTERY', 'Car Battery', 49.95, 69.95);
+
+-- Creates a service list view that displays information on services offered
+
+CREATE OR REPLACE VIEW SERVICE_LIST
+AS SELECT Service_Code AS "Service Code", Service_Description AS "Service Description", Service_Cost AS "Service Cost",
+          Service_Price AS "Service Price", Service_Months AS "Service Months", Service_Milage AS "Service Milage"
+FROM Service
+ORDER BY Service_Code;
+
+-- Creates a part list view that displays information on parts used
+
+CREATE OR REPLACE VIEW PART_LIST
+AS SELECT Part_Code AS "Part Code", Part_Description AS "Part Description", Part_Cost AS "Part Cost",
+          Part_Price AS "Part Price"
+FROM Part
+ORDER BY Part_Code;
+
+---------------------------------------------------------------------------
+--- TASK 4
+---------------------------------------------------------------------------
+
+DROP TABLE Sale_RV CASCADE CONSTRAINT PURGE;
+DROP TABLE Service_RV CASCADE CONSTRAINT PURGE;
+
+-- Creates a table for RV's sold
+
+CREATE TABLE Sale_RV
+(Sale_RV_VIN             CHAR(6),
+Sale_RV_Year             NUMBER(4)       NOT NULL,
+Sale_RV_Class            CHAR(1)         NOT NULL
+                                         CONSTRAINT sarv_class_ck CHECK(Sale_RV_Class IN ('A','B','C')),
+Sale_RV_Make             VARCHAR2(20)    NOT NULL,
+Sale_RV_Model            VARCHAR2(20)    NOT NULL,
+Sale_RV_Style            VARCHAR2(20)    NOT NULL,
+Sale_RV_Engine           VARCHAR2(20)    NOT NULL,
+Sale_RV_Milage           NUMBER(10)      NOT NULL
+                                         CONSTRAINT sarv_mil_ck CHECK(Sale_RV_Milage >= 0),
+Sale_RV_Condition        VARCHAR2(30)    NOT NULL,
+Sale_RV_Status           VARCHAR2(7)     NOT NULL
+                                         CONSTRAINT sarv_status_ck
+                                         CHECK(Sale_RV_Status IN ('FORSALE', 'TRADEIN', 'SOLD')),
+Sale_RV_Purchase_Price   NUMBER(8,2)     NOT NULL
+                                         CONSTRAINT sarv_pprice_ck CHECK(Sale_RV_Purchase_Price >= 0),
+Sale_RV_List_Price       NUMBER(8,2)     NOT NULL,
+                                         CONSTRAINT sarv_lprice_ck CHECK(Sale_RV_List_Price >= 0),
+CONSTRAINT sarv_vin_pk PRIMARY KEY (Sale_RV_VIN));
+
+-- Creates a table for RV's serviced
+
+CREATE TABLE Service_RV
+(Service_RV_VIN     CHAR(6),
+Service_RV_Year     NUMBER(4)           NOT NULL,
+Service_RV_Make     VARCHAR2(20)        NOT NULL,
+Service_RV_Model    VARCHAR2(20)        NOT NULL,
+Service_RV_Milage   NUMBER(8,2)         NOT NULL
+                                        CONSTRAINT svcrv_mil_ck CHECK(Service_RV_Milage >= 0),
+CONSTRAINT svcrv_vin_pk PRIMARY KEY (Service_RV_VIN));
+
+-- Create view Vehicle List
+
+CREATE OR REPLACE VIEW Vehicle_List
+AS SELECT Sale_RV_VIN AS "VIN", Sale_RV_Year AS "Year", Sale_RV_Make AS "Make", Sale_RV_Model AS "Model",
+          Sale_RV_Style AS "Style", Sale_RV_Engine AS "Engine", Sale_RV_Milage AS "Mileage",
+          Sale_RV_Condition AS "Condition", Sale_RV_Status AS "Status", Sale_RV_List_Price AS "List Base Price"
+FROM Sale_RV
+ORDER BY "Make", "Model";
+
+-- Create view Vehicle List for sale
+
+CREATE OR REPLACE VIEW Vehicles_FORSALE
+AS SELECT Sale_RV_VIN AS "VIN", Sale_RV_Year AS "Year", Sale_RV_Make AS "Make", Sale_RV_Model AS "Model",
+          Sale_RV_Style AS "Style/Body", Sale_RV_Engine AS "Engine", Sale_RV_Milage AS "Mileage",
+          Sale_RV_Condition AS "Condition", Sale_RV_Status AS "Status", Sale_RV_List_Price AS "List Base Price"
+FROM Sale_RV
+WHERE Sale_RV_Status = 'FORSALE'
+ORDER BY "Make", "Model";
+
+-- Create view Vehicle List sold
+
+CREATE OR REPLACE VIEW Vehicles_SOLD
+AS SELECT Sale_RV_VIN AS "VIN", Sale_RV_Year AS "Year", Sale_RV_Make AS "Make", Sale_RV_Model AS "Model",
+          Sale_RV_Style AS "Style/Body", Sale_RV_Engine AS "Engine", Sale_RV_Milage AS "Mileage",
+          Sale_RV_Condition AS "Condition", Sale_RV_Status AS "Status", Sale_RV_List_Price AS "List Base Price"
+FROM Sale_RV
+WHERE Sale_RV_Status = 'SOLD'
+ORDER BY "Make", "Model";
+
+-- Create view Vehicle inventory value
+
+CREATE OR REPLACE VIEW Inventory_Val
+AS SELECT SUM(SALE_RV_List_Price) AS "Total Value of Vehicles For Sale"
+FROM Sale_RV
+WHERE Sale_RV_Status = 'FORSALE';
+
+-- Create view Vehicle inventory value by make
+
+CREATE OR REPLACE VIEW Inventory_Val_by_Make
+AS SELECT Sale_RV_Make AS "Make", SUM(SALE_RV_List_Price) AS "Total Value of Vehicles For Sale"
+FROM Sale_RV
+WHERE Sale_RV_Status = 'FORSALE'
+GROUP BY Sale_RV_Make
+ORDER BY Sale_RV_Make;
+
+---------------------------------------------------------------------------
+--- TASK 5
+---------------------------------------------------------------------------
+
+DROP TABLE Sales_Invoice CASCADE CONSTRAINTS PURGE;
+DROP TABLE Vendor CASCADE CONSTRAINTS PURGE;
+DROP TABLE Purchase_Order CASCADE CONSTRAINTS PURGE;
+DROP TABLE Service_Invoice CASCADE CONSTRAINTS PURGE;
+
+
+-- Creates a table for Sales Invoices
+
+CREATE TABLE Sales_Invoice
+(Sales_Invoice_No   NUMBER(4)   CONSTRAINT saleinv_invno_pk     PRIMARY KEY,
+Salesperson_ID      NUMBER(4)   NOT NULL
+                                CONSTRAINT saleinv_spid_fk      REFERENCES Employee(Employee_ID),
+Manager_ID          NUMBER(4)   CONSTRAINT saleinv_apempid_fk   REFERENCES Employee(Employee_ID),
+Sale_RV_VIN         CHAR(6)     NOT NULL
+                                CONSTRAINT saleinv_srvvin_fk    REFERENCES Sale_RV(Sale_RV_VIN),
+Tradein_RV_VIN      CHAR(6)     CONSTRAINT saleinv_trvvin_fk    REFERENCES Sale_RV(Sale_RV_VIN),
+Customer_ID         NUMBER(5)   NOT NULL
+                                CONSTRAINT saleinv_cid_fk       REFERENCES Customer(Customer_ID),
+Sale_Date           DATE        NOT NULL,
+Sale_Terms          VARCHAR2(6) NOT NULL
+                                CONSTRAINT saleinv_terms_ck     CHECK(Sale_Terms IN('Debit', 'Credit')),
+Sale_Approval_Date  DATE,
+Sale_Misc_Costs     NUMBER(8,2) NOT NULL
+                                CONSTRAINT saleinv_miscco_ck    CHECK(Sale_Misc_Costs >= 0),
+Sale_Discount       NUMBER(8,2) NOT NULL
+                                CONSTRAINT saleinv_disc_ck      CHECK(Sale_Discount >= 0),
+Trade_Allowance     NUMBER(8,2) NOT NULL
+                                CONSTRAINT saleinv_tral_ck      CHECK(Trade_Allowance >= 0)
+);
+
+-- Creates a table for Vendors
+
+CREATE TABLE Vendor
+(Vendor_ID      NUMBER(4)       CONSTRAINT ven_venid_pk PRIMARY KEY,
+Company_Name    VARCHAR2(30)    NOT NULL,
+Contact_Name    VARCHAR2(30)    NOT NULL,
+Vendor_Street   VARCHAR2(30)    NOT NULL,
+Vendor_City     VARCHAR2(30)    NOT NULL,
+Vendor_State    CHAR(2)         NOT NULL,
+Vendor_Zip      CHAR(5)         NOT NULL,
+Vendor_Phone    CHAR(10)        NOT NULL
+                                CONSTRAINT ven_venph_uk UNIQUE,
+Vendor_Fax      CHAR(10)        CONSTRAINT ven_venfx_uk UNIQUE);
+
+-- Creates a table for Purchase Orders
+
+CREATE TABLE Purchase_Order
+(PO_Invoice_No      NUMBER(4)   CONSTRAINT po_invno_pk  PRIMARY KEY,
+Purchase_Emp_ID     NUMBER(4)   NOT NULL
+                                CONSTRAINT po_empid_fk  REFERENCES Employee(Employee_ID),
+Vendor_ID           NUMBER(4)   NOT NULL
+                                CONSTRAINT po_venid_fk  REFERENCES Vendor(Vendor_ID),
+SaleRV_VIN          CHAR(6)     NOT NULL
+                                CONSTRAINT po_rvvin_fk  REFERENCES Sale_RV(Sale_RV_VIN)
+                                CONSTRAINT po_rvvin_uk  UNIQUE,
+Sale_Date           DATE        NOT NULL,
+PO_Terms            VARCHAR2(6) NOT NULL
+                                CONSTRAINT po_terms_ck  CHECK(PO_Terms IN('Debit', 'Credit')),
+Sale_Amount         NUMBER(8,2) NOT NULL
+                                CONSTRAINT po_saleamt_ck CHECK(Sale_Amount > 0));
+
+-- Create table for Service Invoices
+
+CREATE TABLE Service_Invoice
+(Service_Invoice_No NUMBER(4)       CONSTRAINT svcinv_invno_pk  PRIMARY KEY,    
+Serviceperson_ID    NUMBER(4)       NOT NULL
+                                    CONSTRAINT svcinv_spid_fk   REFERENCES Employee(Employee_ID),
+Service_RV_VIN      CHAR(6)         NOT NULL
+                                    CONSTRAINT svcinv_rvvin_fk   REFERENCES Service_RV(Service_RV_VIN),
+Service_Code        VARCHAR2(20)    CONSTRAINT svcinv_svccode_fk REFERENCES Service(Service_Code),
+Part_Code           VARCHAR2(20)    CONSTRAINT svcinv_ptcode_fk  REFERENCES Part(Part_Code),
+Customer_ID         NUMBER(5)       NOT NULL
+                                    CONSTRAINT svcinv_cid_fk     REFERENCES Customer(Customer_ID),
+Service_Date        DATE            NOT NULL,
+Service_Terms       VARCHAR2(6)     NOT NULL
+                                    CONSTRAINT svcinv_terms_ck   CHECK(Service_Terms IN('Debit', 'Credit')),
+Service_Misc_Costs  NUMBER(8,2)     NOT NULL
+                                    CONSTRAINT svcinv_miscco_ck  CHECK(Service_Misc_Costs >= 0),
+                                    CONSTRAINT svcinv_svccode_partcode_ck
+                                    CHECK(NOT(Service_Code IS NULL AND Part_Code IS NULL)));
+
+
+-- Insert Vendors
+
+INSERT INTO Vendor VALUES(5001, 'Happy Camper Truck Tops', 'Bob Jones', '200 Higuera St', 'San Luis Obispo',
+                          'CA', '93401', '8052123434', '555123456');
+INSERT INTO Vendor VALUES(5002, 'Get Away RV & Marine', 'Ricky Bobby', '61 S Main St Unit B', 'Templeton',
+                          'CA', '93465', '8056668822', '155627890');
+INSERT INTO Vendor VALUES(5003, 'RV World Ltd', 'Forrest Gump', '1530 W Grand Ave', 'Grover Beach',
+                          'CA', '93433', '805556788', '2226784563');
+INSERT INTO Vendor VALUES(5004, 'California RV Outlets', 'Mary Michael', '2850 El Camino Real', 'Atascadero',
+                          'CA', '93422', '8058554999', '9998887165');
+INSERT INTO Vendor VALUES(5005, 'Majestic RV Center', 'Sue Wilkins', '3242 Thousand Oaks Blvd', 'Thousand Oaks',
+                          'CA', '91362', '9712354444', '5672981635');
+
+
+-- Insert Buying Transactions
+
+--Transaction 1 Buying
+INSERT INTO Sale_RV VALUES('ABC123', 2016, 'A', 'Tiffin', 'Allegro Bus', 'Motorhome',
+                          '8.9 LI I6 Diesel', 15039, 'Excellent', 'FORSALE', 200000, 215000);
+INSERT INTO Purchase_Order VALUES(2001, 1000, 5001, 'ABC123', '07/18/2022', 'Credit', 200000);
+
+--Transaction 2 Buying
+INSERT INTO Sale_RV VALUES('CDE555', 2010, 'A', 'Winnebago', 'W22', 'Motorhome',
+                          '8.1L V8 OHV 16V', 60012, 'Good', 'FORSALE', 135000, 150000);
+INSERT INTO Purchase_Order VALUES(2002, 1000, 5001, 'CDE555', '08/21/2022', 'Credit', 135000);
+
+--Transaction 3 Buying
+INSERT INTO Sale_RV VALUES('WXY467', 2004, 'B', 'Chinook', 'Countryside', 'Motorhome',
+                          '8.9 LI I6 Diesel', 21000, 'Excellent', 'FORSALE', 105000, 115000);
+INSERT INTO Purchase_Order VALUES(2003, 1000, 5002, 'WXY467', '09/25/2022', 'Credit', 105000);
+
+--Transaction 4 Buying
+INSERT INTO Sale_RV VALUES('TUV999', 2017, 'B', 'Airstream', 'Atlas', 'Motorhome',
+                          '8.1L V8 OHV 16V', 35087, 'Excellent', 'FORSALE', 315000, 330000);
+INSERT INTO Purchase_Order VALUES(2004, 1000, 5005, 'TUV999', '09/20/2022', 'Credit', 315000);
+
+--Transaction 5 Buying
+INSERT INTO Sale_RV VALUES('YNC439', 2018, 'C', 'Dynamax', 'Dynaquest', 'Motorhome',
+                          '8.9 LI I6 Diesel', 89023, 'Good', 'FORSALE', 170000, 175000);
+INSERT INTO Purchase_Order VALUES(2005, 1000, 5004, 'YNC439', '01/30/2021', 'Credit', 170000);
+
+
+-- Insert Transactions Selling
+
+-- Transaction 1 Selling (w/ TRADE-IN)
+-- has tradein & buying a car 
+INSERT INTO Customer VALUES (11, 'Mary', 'Jones', '8758 Jake Way', 'Santa Maria', 'CA', '93415', '6619042812',
+                            'maryjones@gmail.com');
+
+-- Trade-In
+INSERT INTO Sale_RV VALUES('FCRTHS', 2020, 'A', 'Dynamax', 'All-American', 'Motorhome',
+                          '8.1L V8 OHV 16V', 23500, 'Excellent', 'TRADEIN', 100000, 124000);
+
+ -- Vehicle that Customer 11 wants to purchase (already in inventory)
+INSERT INTO Sale_RV VALUES('123XYZ', 2021, 'B', 'Dynamax', 'Russian', 'Motorhome',
+                           '8.1L V8 OHV 16V', 100000, 'Good', 'FORSALE', 12500, 200000);
+
+ -- Creates a sales invoice for the car and applicable trade-in 
+INSERT INTO Sales_Invoice VALUES(1, 1009, 1003, '123XYZ', 'FCRTHS', 11, '05/19/2022', 'Debit', '05/20/2022', 500, 250, 100000);
+
+-- Manager approves sales invoice 
+UPDATE Sales_Invoice
+SET Manager_ID = 1000
+WHERE Sales_Invoice_No = 1 ;
+
+-- Sets status of FORSALE car now to SOLD
+UPDATE Sale_RV
+SET Sale_RV_Status = 'SOLD' 
+WHERE Sale_RV_VIN = '123XYZ';
+
+ -- Takes the tradein car and lists it for sale
+UPDATE Sale_RV
+SET Sale_RV_Status = 'FORSALE'
+WHERE Sale_RV_VIN = 'FCRTHS';
+
+
+-- Transaction 2 Selling (w/ TRADE-IN)
+-- has tradein & buying a car
+INSERT INTO Customer VALUES (12, 'May', 'Claymore', '7 Lucky Street', 'Santa Clarita', 'CA', '93416', '6619042813',
+                            'mayclaymore@gmail.com');
+
+-- Trade-In
+INSERT INTO Sale_RV VALUES('SNKR11', 2005, 'C', 'Airstream', 'Turbomax', 'Motorhome',
+                          '8.9 LI I6 Diesel', 50674, 'Good', 'TRADEIN', 5500, 12499);
+
+ -- Vehicle that Customer 12 wants to purchase (already in inventory)
+INSERT INTO Sale_RV VALUES('KLIPPY', 2012, 'A', 'Craber', 'All-American', 'Motorhome',
+                           '8.1L V8 OHV 16V', 34984, 'Excellent', 'FORSALE', 20000, 35000);
+
+-- Creates a sales invoice for the car and applicable trade-in | Customer 12 Car, Serviced
+INSERT INTO Sales_Invoice VALUES(2, 1009, 1003, 'KLIPPY', 'SNKR11', 12, '05/10/2022', 'Credit', '05/31/2022', 110, 100, 20000);
+
+-- Manager approves sales invoice 
+UPDATE Sales_Invoice
+SET Manager_ID = 1000
+WHERE Sales_Invoice_No = 2;
+
+-- Sets status of FORSALE car now to SOLD
+UPDATE Sale_RV 
+SET Sale_RV_Status = 'SOLD'
+WHERE Sale_RV_VIN = 'SNKR11';
+
+-- Takes the tradein car and lists it for sale
+UPDATE Sale_RV
+SET Sale_RV_Status = 'FORSALE' 
+WHERE Sale_RV_VIN = 'KLIPPY';
+
+
+-- Transaction 3 Selling (w/ TRADE-IN)
+-- Has tradein & buying a car
+INSERT INTO Customer VALUES (13, 'Mike', 'Dune', '8 Ball Road', 'Valencia', 'CA', '93417', '6619042814', 'mikedune@gmail.com');
+
+-- Trade-In
+INSERT INTO Sale_RV VALUES('XABCZZ', 2011, 'B', 'Chinook', 'Elegance', 'Motorhome',
+                          '8.1L V8 OHV 16V', 30223, 'Excellent', 'TRADEIN', 22000, 35000);
+
+-- Vehicle that Customer 13 wants to purchase (already in inventory)
+INSERT INTO Sale_RV VALUES('BRZ777', 2005, 'C', 'Schrader', 'Turbodrive', 'Motorhome', 
+                           '8.1L V8 OHV 16V', 350000, 'Good', 'FORSALE', 1050, 5000);
+
+-- Creates a sales invoice for the car and applicable trade-in
+INSERT INTO Sales_Invoice VALUES(3, 1009, 1003, 'BRZ777', 'XABCZZ', 13, '04/20/2022', 'Debit', '05/01/2022', 100, 50, 1050);
+
+-- Manager approves sales invoice 
+UPDATE Sales_Invoice 
+SET Manager_ID = 1000
+WHERE Sales_Invoice_No = 3;
+
+-- Sets status of FORSALE car now to SOLD
+UPDATE Sale_RV 
+SET Sale_RV_Status = 'SOLD'
+WHERE Sale_RV_VIN = 'XABCZZ';
+
+-- Takes the tradein car and lists it for sale
+UPDATE Sale_RV
+SET Sale_RV_Status = 'FORSALE' 
+WHERE Sale_RV_VIN = 'BRZ777';
+
+
+-- Transaction 4 Selling (No trade-in)
+-- does not have tradein & buying a car
+INSERT INTO Customer VALUES (14, 'Miguel', 'Mena', '88 Hawkins Street', 'Santa Clarita', 'CA', '93418', '6619042815',
+                            'miguelmena@gmail.com');
+
+-- The car the customer is interested in purchasing, which is now currently for sale
+INSERT INTO Sale_RV VALUES('ZYZZXX', 2012, 'B', 'Subaru', 'Outback', 'Motorhome', 
+                           '8.1L V8 OHV 16V', 200, 'Excellent', 'FORSALE', 10000, 50000);
+
+-- Creates a sales invoice for the car being purchased
+INSERT INTO Sales_Invoice VALUES(4, 1006, 1003, 'ZYZZXX', NULL, 14, '03/15/2022', 'Credit', '03/16/2022', 400, 25, 0);
+
+-- Manager approves sales invoice 
+UPDATE Sales_Invoice 
+SET Manager_ID = 1000
+WHERE Sales_Invoice_No = 4;
+
+-- Sets status of FORSALE car now to SOLD
+UPDATE Sale_RV 
+SET Sale_RV_Status = 'SOLD'
+WHERE Sale_RV_VIN = 'ZYZZXX';
+
+
+-- Transaction 5 Selling (No trade-in)
+-- Does not have tradein & buying a car
+INSERT INTO Customer VALUES (15, 'Melissa', 'Short', '1212 Mail Drive', 'Los Angeles', 'CA', '93419', '6619042816',
+                            'melissashort@gmail.com');
+
+-- The car the customer is interested in purchasing, which is now currently for sale
+INSERT INTO Sale_RV VALUES('BRR999', 2022, 'A', 'Cadillac', 'Dunebuggy', 'Motorhome', 
+                           '8.1L V8 OHV 16V', 1000, 'Excellent', 'FORSALE', 12000, 21000);
+
+-- Creates a sales invoice for the car being purchased
+INSERT INTO Sales_Invoice VALUES(5, 1006, 1003, 'BRR999', NULL, 15, '02/22/2022', 'Debit', '02/24/2022', 220, 79, 0); 
+
+-- Manager approves sales invoice 
+UPDATE Sales_Invoice 
+SET Manager_ID = 1000
+WHERE Sales_Invoice_No = 5;
+
+-- Sets status of FORSALE car now to SOLD
+UPDATE Sale_RV 
+SET Sale_RV_Status = 'SOLD'
+WHERE Sale_RV_VIN = 'BRR999';
+
+
+-- Insert Service Invoices
+
+-- Transaction 1 Service
+-- customer who has an RV not sold by us that wants to get serviced
+INSERT INTO Customer VALUES (16, 'Jane', 'Hopper', '1001 Blaze Drive', 'Los Angeles', 'CA', '93420', '6619042817',
+                            'janehopper@gmail.com');
+
+ -- Customer 16's car (not bought from us)
+INSERT INTO Service_RV VALUES('MNSTRY', 2019, 'Nissan', 'Altima', 35000);
+
+-- Service but no part | car not sold from us | [USED IN LATER SERVICES QUERY] | Sometime in past year
+INSERT INTO Service_Invoice VALUES(1, 1005, 'MNSTRY', 'TIREROTATE', NULL, 16, '08/01/2021', 'Credit',
+                                  10.00);
+
+
+-- Transaction 2 Service 
+-- customer who has an RV not sold by us that wants to get serviced
+INSERT INTO Customer VALUES (17, 'Bip', 'Hernandez', '7 Hailway Road', 'Santa Clarita', 'CA', '93421', '6619042818',
+                            'biphernandez@gmail.com');
+
+-- Customer 17's car (not bought from us)
+INSERT INTO Service_RV VALUES('SHARKY', 2022, 'Dodge', 'Ram', 20000);
+
+-- Service but no part | car not sold from us | [USED IN LATER SERVICES QUERY] | sometime in the last year
+INSERT INTO Service_Invoice VALUES(2, 1005, 'SHARKY', 'TIREROTATE', NULL, 17, '08/01/2021', 'Debit',
+                                  20.00); 
+
+
+-- Transaction 3 Service
+-- Customer who has an RV not sold by us that wants to get serviced
+INSERT INTO Customer VALUES (18, 'Sean', 'Abi-Saab', '10 West Works Way', 'Valencia', 'CA', '93422', 
+                            '6619042819', 'seanabisaab@gmail.com');
+
+-- Customer 18's car (not bought from us)
+INSERT INTO Service_RV VALUES('DEXXXX', 2022, 'BMW', 'i5', 40500);
+
+-- Part but no service | car not sold from us
+INSERT INTO Service_Invoice VALUES(3, 1005, 'DEXXXX', NULL, 'OIL10W30', 18, '05/05/2022', 'Credit', 30.00); 
+
+
+-- Transaction 4 Service
+-- Customer 11's car (bought from us)
+INSERT INTO Service_RV(Service_RV_VIN, Service_RV_Year, Service_RV_Make, Service_RV_Model, Service_RV_Milage)
+    SELECT Sale_RV_VIN, Sale_RV_Year, Sale_RV_Make, Sale_RV_Model, Sale_RV_Milage
+    FROM Sale_RV
+    WHERE Sale_RV_VIN = '123XYZ';
+
+-- Part but no service | car sold by us
+INSERT INTO Service_Invoice VALUES(4, 1005, '123XYZ', NULL, 'OILFILTER', 11, ' 06/06/2022', 'Debit', 40.00);
+
+
+-- Transaction 5 Service
+-- Customer 12's car (bought from us)
+INSERT INTO Service_RV(Service_RV_VIN, Service_RV_Year, Service_RV_Make, Service_RV_Model, Service_RV_Milage) 
+    SELECT Sale_RV_VIN, Sale_RV_Year, Sale_RV_Make, Sale_RV_Model, Sale_RV_Milage
+    FROM Sale_RV
+    WHERE Sale_RV_VIN = 'KLIPPY';
+
+-- Service and part | car sold by us
+INSERT INTO Service_Invoice VALUES(5, 1005, 'KLIPPY', 'FLUIDS', 'BOLTS', 12, '07/07/2022', 'Credit', 50.00); 
+
+
+-- Transaction 6 Service
+-- Customer 13's car (bought from us)
+INSERT INTO Service_RV(Service_RV_VIN, Service_RV_Year, Service_RV_Make, Service_RV_Model, Service_RV_Milage) 
+    SELECT Sale_RV_VIN, Sale_RV_Year, Sale_RV_Make, Sale_RV_Model, Sale_RV_Milage
+    FROM Sale_RV
+    WHERE Sale_RV_VIN = 'BRZ777';
+
+-- Service and part | car sold by us 
+INSERT INTO Service_Invoice VALUES(6, 1005, 'BRZ777', 'BATTERYREP', 'BATTERY', 13, '08/08/2022', 'Debit', 60.00); 
+
+
+-- Transaction 7 Service
+-- Customer 10's car (not bought from us)
+INSERT INTO Service_RV VALUES('HYPE12', 2013, 'BMW', 'i5', 40500);
+
+-- Service and part
+INSERT INTO Service_Invoice VALUES(7, 1005, 'HYPE12', 'TUNEUPDELUXE', 'WIPERS', 10, '09/09/2022', 'Credit', 70.00); 
+
+
+-- Transaction 8 Service
+-- Customer 10's car (not bought from us)
+INSERT INTO Service_RV VALUES('DADA67', 2013, 'BMW', 'i5', 40500); 
+
+-- Service and part | [USED IN OIL CHANGE QUERY] | Date > 6mo's ago
+INSERT INTO Service_Invoice VALUES(8, 1005, 'DADA67', 'OILCHG', 'OIL10W30', 9, '01/01/2021', 'Debit', 80.00); 
+
+
+-- Transaction 9 Service
+-- Customer 13's car (bought from us)
+INSERT INTO Service_RV(Service_RV_VIN, Service_RV_Year, Service_RV_Make, Service_RV_Model, Service_RV_Milage) 
+    SELECT Sale_RV_VIN, Sale_RV_Year, Sale_RV_Make, Sale_RV_Model, Sale_RV_Milage
+    FROM Sale_RV
+    WHERE Sale_RV_VIN = 'ZYZZXX';
+
+-- Service and part | [USED IN OIL CHANGE QUERY] | Date > 6mo's ago
+INSERT INTO Service_Invoice VALUES(9, 1005, 'ZYZZXX', 'OILCHG', 'OILFILTER', 14, '01/01/2021', 'Credit', 90.00); 
+
+
+-- Transaction 10 Service
+-- Customer returned for another service;
+INSERT INTO Service_Invoice VALUES(10, 1005, 'MNSTRY', 'FLUIDS', NULL, 16, '06/04/2020', 'Credit', 100.00); 
+UPDATE Service_RV
+SET Service_RV_Milage = 42000
+WHERE Service_RV_VIN = 'MNSTRY';
+
+
+-- Transaction 11 Service  - returned for another service, milage has increased by more than 6000
+-- Customer returned for another service;  > 6,000 miles from last service 
+INSERT INTO Service_Invoice VALUES(11, 1005, 'SHARKY', 'OILCHG', NULL, 17, '01/01/2020', 'Debit', 20.00); 
+UPDATE Service_RV
+SET Service_RV_Milage = 28000
+WHERE Service_RV_VIN = 'SHARKY';
+
+
+-- Extra customer who wants car to get car serviced
+INSERT INTO Customer VALUES (19, 'Joe', 'McLaughlin', '69 White Way', 'Santa Clarita', 'CA', '93423', '6619042820', 'joemclaughlin@gmail.com');
+
+
+-- Extra customer who wants car to get car serviced
+INSERT INTO Customer VALUES (20, 'Marina', 'Jarocki', '23232 Lighter Lane', 'Santa Clarita', 'CA', '93424', '6619042821', 'marinajarocki@gmail.com');
+
+
+-- Extra customer who wants car to get car serviced
+INSERT INTO Customer VALUES (21, 'Michael', 'Jarocki', '444 Juice Lane', 'Valencia', 'CA', '93424', '6619042822', 'michaeljarocki@gmail.com');
+
+
+-- Create view Vendor List
+
+CREATE OR REPLACE VIEW Vendor_List
+AS SELECT Company_Name AS "Company Name", Contact_Name AS "Contact Name", Vendor_Street AS "Street Address",
+          Vendor_City AS "City", Vendor_State AS "State", Vendor_Zip AS "Zip Code", Vendor_Phone AS "Phone Number",
+          Vendor_Fax AS "Fax Number"
+FROM Vendor
+ORDER BY Company_Name;
+
+
+-- Create view RV Sales list
+
+CREATE OR REPLACE VIEW RV_Sales_List 
+AS SELECT slinv.Sales_Invoice_No AS "Invoice Number", e.Employee_First_Name ||' '|| e.Employee_Last_Name AS "Salesperson Name",
+          m.Employee_First_Name ||' '|| m.Employee_Last_Name AS "Approved by Name", slinv.Sale_RV_VIN AS "VIN",
+          rv.Sale_RV_Make AS "Make", rv.Sale_RV_Model AS "Model", rv.Sale_RV_Class AS "Class", slinv.Tradein_RV_VIN AS "Trade In VIN",
+          tirv.Sale_RV_Make AS "Trade In Make", tirv.Sale_RV_Model AS "Trade In Model", rv.Sale_RV_List_Price AS "Selling Price",
+          slinv.Sale_Misc_Costs AS "Misc Costs", slinv.Sale_Discount AS "Discount", slinv.Trade_Allowance AS "Trade In Allowance",
+          rv.Sale_RV_List_Price + slinv.Sale_Misc_Costs - slinv.Sale_Discount - slinv.Trade_Allowance AS "Subtotal",
+          (rv.Sale_RV_List_Price + slinv.Sale_Misc_Costs - slinv.Sale_Discount - slinv.Trade_Allowance) * 0.0825 AS "Taxes",
+          (rv.Sale_RV_List_Price + slinv.Sale_Misc_Costs - slinv.Sale_Discount - slinv.Trade_Allowance) +
+          (rv.Sale_RV_List_Price + slinv.Sale_Misc_Costs - slinv.Sale_Discount - slinv.Trade_Allowance) * 0.0825 AS "Total
+          Selling Price"
+FROM Sales_Invoice slinv
+JOIN Employee e
+ON (slinv.Salesperson_ID = e.Employee_ID)
+JOIN Employee m
+ON (slinv.Manager_ID = m.Employee_ID)
+JOIN Sale_RV rv
+ON (slinv.Sale_RV_VIN = rv.Sale_RV_VIN)
+JOIN Sale_RV tirv
+ON (slinv.Tradein_RV_VIN = tirv.Sale_RV_VIN);
+
+
+-- Create view RV Purchase list
+
+CREATE OR REPLACE VIEW RV_Purchase_List
+AS SELECT po.PO_Invoice_No AS "Purchase Order Number", v.Company_Name AS "Company Name",
+          v.Contact_Name AS "Contact Name", rv.Sale_RV_VIN AS "VIN", rv.Sale_RV_Make AS "Make",
+          rv.Sale_RV_Model AS "Model", rv.Sale_RV_Class AS "Class", rv.Sale_RV_Purchase_Price AS "Sales Amount",
+          rv.Sale_RV_Purchase_Price * 0.0825 AS "Taxes", rv.Sale_RV_Purchase_Price + rv.Sale_RV_Purchase_Price * 0.0825 AS "Total Price",
+          e.Employee_First_Name ||' '|| e.Employee_Last_Name AS "Manager Name"
+FROM Purchase_Order po
+JOIN Vendor v
+ON   (po.Vendor_ID = v.Vendor_ID)
+JOIN Sale_RV rv
+ON   (po.SaleRV_VIN = rv.Sale_RV_VIN)
+JOIN Employee e
+ON   (po.Purchase_Emp_ID = e.Employee_ID);
+
+
+-- Create Service Invoice view
+
+CREATE OR REPLACE VIEW Service_Invoice_List
+AS SELECT svinv.Service_Invoice_No AS "Invoice Number", c.Customer_First_Name ||' '|| c.Customer_Last_Name AS "Customer Name",
+          svrv.Service_RV_VIN AS "VIN", svrv.Service_RV_MAKE AS "Make", svrv.Service_RV_Model AS "Model", svrv.Service_RV_Milage AS "Mileage",
+          svc.Service_Cost AS "Total Service Charge", pt.Part_Cost AS "Total Parts Charge", svc.Service_Cost + pt.Part_Cost
+          AS "Subtotal Charges", svinv.Service_Misc_Costs AS "Misc Costs", (svc.Service_Cost + pt.Part_Cost + svinv.Service_Misc_Costs)
+          * 0.0825 AS "Taxes", svc.Service_Cost + pt.Part_Cost + svinv.Service_Misc_Costs + (svc.Service_Cost + pt.Part_Cost + svinv.Service_Misc_Costs)
+          * 0.0825 AS "Total Charges"
+FROM Service_Invoice svinv
+JOIN Customer c
+ON (svinv.Customer_ID = c.Customer_ID)
+JOIN Service_RV svrv
+ON (svinv.Service_RV_VIN = svrv.Service_RV_VIN)
+JOIN Service svc
+ON (svinv.Service_Code = svc.Service_Code)
+JOIN Part pt
+ON (svinv.Part_Code = pt.Part_Code);
+
+---------------------------------------------------------------------------
+--- TASK 6
+---------------------------------------------------------------------------
+
+-- customer report 1
+CREATE OR REPLACE VIEW Customer_Sales
+AS SELECT c.Customer_First_Name ||' '|| c.Customer_Last_Name AS "Customer Name", c.Customer_Phone_Number AS "Customer Phone"
+FROM Customer c
+JOIN Sales_Invoice si
+ON (c.Customer_ID = si.Customer_ID)
+ORDER BY "Customer Name";
+
+-- customer report 2
+CREATE OR REPLACE VIEW Cust_Per_City
+AS SELECT Customer_City AS "City", COUNT(*) AS "Number of Customers"
+FROM Customer
+GROUP BY Customer_City
+ORDER BY COUNT(*) DESC;
+
+-- customer report 3
+CREATE OR REPLACE VIEW Customer_Sales_No_Serv
+AS SELECT c.Customer_First_Name ||' '|| c.Customer_Last_Name AS "Customer Name", c.Customer_Phone_Number AS "Customer Phone"
+FROM Customer c
+JOIN Sales_Invoice si
+ON (c.Customer_ID = si.Customer_ID)
+WHERE c.Customer_ID NOT IN (SELECT Customer_ID
+                           FROM Service_Invoice);
+
+-- customer report 4
+CREATE OR REPLACE VIEW Cust_Preference_Winnebago
+AS SELECT c.Customer_First_Name ||' '|| c.Customer_Last_Name AS "Customer Name", c.Customer_Phone_Number AS "Customer Phone",
+         cp.Preference_End_Date AS "Preference End Date"
+FROM Customer c JOIN Preference cp
+ON (c.Customer_ID = cp.Customer_ID)
+WHERE cp.Preference_Make = 'Winnebago'
+AND cp.Preference_End_Date >= SYSDATE;
+
+
+-- customer report 5
+CREATE OR REPLACE VIEW Cust_Sale_NoTrade
+AS SELECT c.Customer_First_Name ||' '|| c.Customer_Last_Name AS "Customer Name"
+FROM Customer c JOIN Sales_Invoice si
+ON (c.Customer_ID = si.Customer_ID)
+WHERE c.Customer_ID IN (SELECT Customer_ID
+                     FROM Sales_Invoice)
+AND si.Tradein_RV_VIN IS NULL;
+
+-- customer report 6a
+CREATE OR REPLACE VIEW Best_Cust_Highest_RVs
+AS SELECT c.Customer_First_Name ||' '|| c.Customer_Last_Name AS "Customer Name", COUNT(Sale_RV_VIN) AS "Number of RVs Purchased"
+FROM Customer c JOIN Sales_Invoice si
+ON (c.Customer_ID = si.Customer_ID)
+GROUP BY c.Customer_First_Name ||' '|| c.Customer_Last_Name
+ORDER BY "Number of RVs Purchased" DESC
+FETCH FIRST 1 ROW WITH TIES;
+
+-- customer report 6b
+
+CREATE OR REPLACE VIEW Best_Cust_Highest_Profit
+AS SELECT c.Customer_First_Name ||' '|| c.Customer_Last_Name AS "Customer Name", SUM(rv.Sale_RV_List_Price - si.Sale_Discount) AS "Total Profit"
+FROM Customer c JOIN Sales_Invoice si
+ON (c.Customer_ID = si.Customer_ID)
+JOIN Sale_RV rv
+ON (si.Sale_RV_VIN = rv.Sale_RV_VIN)
+GROUP BY c.Customer_First_Name ||' '|| c.Customer_Last_Name
+ORDER BY "Total Profit" DESC
+FETCH FIRST 1 ROW WITH TIES;
+
+
+-- sales report 7
+CREATE OR REPLACE VIEW Sales_In_30Days
+AS SELECT Sale_RV_VIN AS "VIN", Sale_RV_Make AS "Make", Sale_RV_Model AS "Model", Sale_RV_List_Price AS "List Price"
+FROM Sale_RV
+WHERE Sale_RV_VIN IN (SELECT Sale_RV_VIN
+                       FROM Sales_Invoice
+                       WHERE Sale_Date >= SYSDATE - 30);
+
+-- sales report 8
+CREATE OR REPLACE VIEW Most_Popular_RV
+AS SELECT rv.Sale_RV_Make AS "Make", COUNT(*)  AS "Number Sold"
+FROM Sales_Invoice si
+JOIN Sale_RV rv
+ON (si.Sale_RV_VIN = rv.Sale_RV_VIN)
+GROUP BY rv.Sale_RV_Make
+ORDER BY "Number Sold" DESC
+FETCH FIRST 1 ROW WITH TIES;
+
+-- sales report 9
+CREATE OR REPLACE VIEW RV_Sale_Profit
+AS SELECT SUM(rv.Sale_RV_Purchase_Price - rv.Sale_RV_List_Price) AS "Amount"
+FROM Sale_RV rv
+JOIN Sales_Invoice si
+ON (rv.Sale_RV_VIN = si.Sale_RV_VIN);
+
+-- sales report 10a (assumes that employees make commission on final total of a sale before tax)
+CREATE OR REPLACE VIEW Best_Emp_Commission
+AS SELECT e.Employee_First_Name ||' '|| e.Employee_Last_Name AS "Employee Name",
+          SUM(e.Employee_Commission_Percent/100 * (rv.Sale_RV_List_Price + slinv.Sale_Misc_Costs -
+          slinv.Sale_Discount - slinv.Trade_Allowance)) AS "Total Commission Earned"
+FROM Employee e 
+JOIN Sales_Invoice slinv
+ON (e.Employee_ID = slinv.Salesperson_ID)
+JOIN Sale_RV rv
+ON (slinv.Sale_RV_VIN = rv.Sale_RV_VIN)
+GROUP BY e.Employee_First_Name ||' '|| e.Employee_Last_Name
+ORDER BY "Total Commission Earned" DESC
+FETCH FIRST 1 ROW WITH TIES;
+
+-- sales report 10b
+CREATE OR REPLACE VIEW Best_Emp_Sales
+AS SELECT e.Employee_First_Name ||' '|| e.Employee_Last_Name AS "Employee Name", COUNT(*) "Number of Vehicles Sold"
+FROM Sales_Invoice si
+JOIN Employee e
+ON (si.Salesperson_ID = e.Employee_ID)
+GROUP BY e.Employee_First_Name ||' '|| e.Employee_Last_Name
+ORDER BY "Number of Vehicles Sold" DESC
+FETCH FIRST 1 ROW WITH TIES;
+
+-- service report 11
+CREATE OR REPLACE VIEW Service_Profits
+AS SELECT s.Service_Code AS "Service Code", s.Service_Description AS "Service Description",
+          SUM(s.Service_Price - s.Service_Cost) * COUNT(*) AS "Total Profit"
+FROM Service_Invoice svi
+JOIN Service s
+ON (svi.Service_Code = s.Service_Code)
+GROUP BY s.Service_Code, s.Service_Description
+ORDER BY s.Service_Code;
